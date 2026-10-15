@@ -31,7 +31,7 @@ class Item(BaseModel):
 def create_item(item:Item):
     with get_db() as conn:
         cursor = conn.execute(
-            "INSERT INTO items(names,description) VALUES(?,?)",
+            "INSERT INTO items(name,description) VALUES(?,?)",
             (item.name,item.description)
         )
         return {"id":cursor.lastrowid, **item.model_dump()}
