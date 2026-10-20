@@ -1,6 +1,7 @@
 from fastapi import FastAPI,HTTPException, Depends
 
 from fastapi.security import APIKeyHeader
+from matplotlib.backend_bases import cursors
 
 from pydantic import BaseModel
 
@@ -35,4 +36,33 @@ def create_item(item:Item):
             (item.name,item.description)
         )
         return {"id":cursor.lastrowid, **item.model_dump()}
+
+@app.get("/items/",dependencies=[Depends(check_key)])
+def get_items():
+    with get_db() as conn:
+        rows = conn.execute("SELECT * FROM items").fetchall()
+        return [dict(row) for row in rows]
+
+@app.get("/items/{item_id}",dependencies=[Depends(check_key)])
+def get_item(item_id:int):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM items WHERE id = ?",(item_id)).fetchone()
+
+        if not row:
+            raise  HTTPException(404, "item not found")
+
+        return [dict(row)]
+
+
+@app.put("items/{item_id}",dependencies=[Depends(check_key)])
+def update_item(item_id:int, item:Item):
+    with get_db() as conn:
+        cursor = conn.execute(
+            "UPDATE items SET name = ?, description=?",(item.name,item.description, item.id)
+
+        )
+        if cursor.rowcount == 0:
+            raise HTTPException(404,"item not found")
+
+        return {id: item_id, **item.model_dump()}
 
